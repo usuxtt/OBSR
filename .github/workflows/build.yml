@@ -14,6 +14,9 @@ jobs:
       - name: Unpack project
         run: unzip -q OBSR.zip -d project
 
+      - name: Fix onStart name clash
+        run: sed -i 's/onStart()/onStartClicked()/g' project/app/src/main/java/com/presence/companion/MainActivity.kt
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -28,7 +31,11 @@ jobs:
 
       - name: Build debug APK
         working-directory: project
-        run: gradle assembleDebug --stacktrace
+        run: |
+          gradle assembleDebug --console=plain > build.log 2>&1 && exit 0
+          echo "===== ОШИБКИ СБОРКИ ====="
+          grep -E "^e: |error:|What went wrong|FAILED" -A4 build.log | head -60
+          exit 1
 
       - uses: actions/upload-artifact@v4
         with:
